@@ -5,6 +5,7 @@ function App() {
     <main className="app">
       <div className="squares">
         <div className="square" style={{ backgroundColor: 'red' }}></div>
+        <div className="square" style={{ backgroundColor: 'green' }}></div>
       </div>
     </main>
   )
