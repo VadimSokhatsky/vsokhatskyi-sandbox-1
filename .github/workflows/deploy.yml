@@ -2,20 +2,19 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches-ignore:
+      - gh-pages
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,18 +22,35 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Set deploy paths
+        id: paths
+        run: |
+          REPO_NAME="vsokhatskyi-sandbox-1"
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "vite_base=/${REPO_NAME}/" >> $GITHUB_OUTPUT
+            echo "is_main=true" >> $GITHUB_OUTPUT
+          else
+            BRANCH=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+            echo "vite_base=/${REPO_NAME}/previews/${BRANCH}/" >> $GITHUB_OUTPUT
+            echo "dest_dir=previews/${BRANCH}" >> $GITHUB_OUTPUT
+            echo "is_main=false" >> $GITHUB_OUTPUT
+          fi
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+        env:
+          VITE_BASE: ${{ steps.paths.outputs.vite_base }}
+      - name: Deploy main
+        if: steps.paths.outputs.is_main == 'true'
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true
+      - name: Deploy preview
+        if: steps.paths.outputs.is_main != 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: ${{ steps.paths.outputs.dest_dir }}
+          keep_files: true
