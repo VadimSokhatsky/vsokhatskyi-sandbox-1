@@ -1,0 +1,1 @@
+*,:before,:after{box-sizing:border-box}body{background:#fff;margin:0}#root{min-height:100svh}.app{box-sizing:border-box;background-color:#dedede;min-height:100svh;padding:12px;display:flex}.squares{gap:12px;display:flex}.square{border-radius:12px;width:48px;height:48px}
